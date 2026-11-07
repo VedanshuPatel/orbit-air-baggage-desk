@@ -80,6 +80,34 @@ def escalate_overdue(conn, now, by="system"):
     return escalated
 
 
+def seed_claims(conn, rows, now, by="seed"):
+    prepared = []
+    for index, row in enumerate(rows, start=1):
+        try:
+            passenger = _required_text(row.get("passenger"), "Passenger name")
+            flight = _required_text(row.get("flight"), "Flight number")
+            claim_type = row.get("type")
+            tier = row.get("tier")
+            _one_of(claim_type, CLAIM_TYPES, "type")
+            _one_of(tier, TIERS, "tier")
+            note = "" if row.get("note") is None else str(row.get("note"))
+        except ClaimError as exc:
+            raise ClaimError(f"Row {index + 1}: {exc}") from exc
+        prepared.append((passenger, flight, claim_type, tier, note))
+    return [
+        file_claim(conn, passenger, flight, claim_type, tier, note, now, by)
+        for passenger, flight, claim_type, tier, note in prepared
+    ]
+
+
+def get_history(conn, claim_id):
+    _get_claim(conn, claim_id)
+    return conn.execute(
+        "SELECT * FROM history WHERE claim_id = ? ORDER BY id",
+        (claim_id,),
+    ).fetchall()
+
+
 def list_claims(conn, status=None, tier=None):
     clauses = []
     params = []

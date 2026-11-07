@@ -14,11 +14,28 @@ source .venv/bin/activate
 pip install -r requirements-dev.txt
 ```
 
-Run the tests and the linter:
+Run the app, the tests, and the linter:
 
 ```bash
+python main.py --help
 python -m pytest
 ruff check .
+```
+
+## Walkthrough
+
+`--now` sets the clock and goes before the command name. `--db` defaults to `baggage.db`.
+
+```bash
+python main.py --now 2026-11-02T08:00:00 file --passenger "Amina Shah" --flight OA101 --type delayed --tier gold
+python main.py --now 2026-11-02T09:00:00 assign 1 Priya
+python main.py --now 2026-11-02T10:00:00 resolve 1
+python main.py --now 2026-11-02T11:00:00 close 1
+python main.py history 1
+python main.py list --status closed
+python main.py --now 2026-11-02T08:00:00 seed seed_claims.csv
+python main.py --now 2026-11-02T14:00:00 escalate
+python main.py list --status escalated
 ```
 
 ## Linear Issues
@@ -58,7 +75,26 @@ To be filled in after `seed_claims.csv` exists.
 
 ## Overdue Demonstration
 
-To be filled in with real output once the CLI is built.
+Fresh database. Gold claims filed at 08:00 have a deadline of 12:00, so at 14:00 they escalate. Silver and standard claims filed at the same time do not. Claim 2 was assigned first, and it still escalates because it was assigned and overdue.
+
+```text
+$ python main.py --now 2026-11-02T08:00:00 seed seed_claims.csv
+Seeded 12 claims.
+$ python main.py --now 2026-11-02T08:30:00 assign 2 Priya
+Claim 2 assigned to Priya.
+$ python main.py --now 2026-11-02T14:00:00 escalate
+Escalated claims: 2, 4, 6, 10, 11
+$ python main.py list --status escalated
+2  Luis Ortega  OA220  lost  gold  escalated  Priya  No scan after arrival
+4  Noah Brooks  OA118  delayed  gold  escalated  -  Connection missed and bag stayed behind
+6  Jonah Kim  OA510  damaged  gold  escalated  -  Wheel housing split open
+10  Owen Clarke  OA808  delayed  gold  escalated  -  Priority tag was removed in transit
+11  Leila Haddad  OA363  lost  gold  escalated  -  Last seen at the departure scan
+$ python main.py history 2
+none -> open by seed at 2026-11-02T08:00:00
+open -> assigned by desk at 2026-11-02T08:30:00
+assigned -> escalated by system at 2026-11-02T14:00:00
+```
 
 ## Code Review
 
