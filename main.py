@@ -60,6 +60,8 @@ def _parser():
     history_cmd = commands.add_parser("history")
     history_cmd.add_argument("claim_id", type=int)
 
+    commands.add_parser("report")
+
     seed_cmd = commands.add_parser("seed")
     seed_cmd.add_argument("csv_path")
     return parser
@@ -98,6 +100,8 @@ def _run(args, connection, now):
             print("Escalated claims:")
     elif args.command == "history":
         _print_history(claims.get_history(connection, args.claim_id))
+    elif args.command == "report":
+        _print_report(claims.report_by_tier(connection, now))
     elif args.command == "seed":
         rows = _read_seed_rows(args.csv_path)
         claim_ids = claims.seed_claims(connection, rows, now)
@@ -125,6 +129,13 @@ def _print_history(rows):
         print(
             f"{old_status} -> {row['new_status']} by {row['changed_by']} at {row['changed_at']}"
         )
+
+
+def _print_report(counts):
+    print("tier      open  overdue")
+    for tier in claims.TIERS:
+        row = counts[tier]
+        print(f"{tier:<9} {row['open']:<5} {row['overdue']}")
 
 
 def _read_seed_rows(path):

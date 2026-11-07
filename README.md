@@ -36,6 +36,7 @@ python main.py list --status closed
 python main.py --now 2026-11-02T08:00:00 seed seed_claims.csv
 python main.py --now 2026-11-02T14:00:00 escalate
 python main.py list --status escalated
+python main.py --now 2026-11-02T12:01:00 report
 ```
 
 ## Linear Issues
@@ -133,4 +134,41 @@ assigned -> escalated by system at 2026-11-02T14:00:00
 2. **An unknown list filter is silent.** `python main.py list --status pending` prints `No claims.` instead of an error. I left this. The spec asks for filtering, and an unknown value simply matches no rows. The CHECK constraint still blocks that status from being stored.
 
 3. **The walkthrough mixed two examples in one database.** The file, assign, resolve, and close commands were followed by `seed` and `escalate` against the same `baggage.db`, so the escalation ids would not match the overdue demonstration. I changed the Walkthrough section to say the seed commands need a fresh database, with `baggage.db` deleted first.
+
+## Stretch Goals
+
+### STRETCH GOAL 1
+
+`.claude/settings.json` runs `.claude/hooks/block-test-edits.sh` before an Edit or Write. The hook exits 2 when the path is under `tests/`, and exits 0 for any other file.
+
+```text
+$ printf '%s' '{"tool_name":"Edit","tool_input":{"file_path":"tests/test_claims.py"}}' | sh .claude/hooks/block-test-edits.sh
+Blocked: edits to the tests folder are not allowed. The tests are the spec.
+exit=2
+
+$ printf '%s' '{"tool_name":"Edit","tool_input":{"file_path":"claims.py"}}' | sh .claude/hooks/block-test-edits.sh
+exit=0
+```
+
+The same block fired in Cursor while this stretch work was being added: an attempt to create `tests/test_report.py` was refused with `Blocked: edits to the tests folder are not allowed. The tests are the spec.`
+
+### STRETCH GOAL 2
+
+`python main.py report` prints open and overdue counts by tier. Overdue means the claim is still open, assigned, or escalated and the given time is past its deadline. On a fresh database, one gold claim filed at 08:00 and reported at 12:01 printed:
+
+```text
+tier      open  overdue
+standard  0     0
+silver    0     0
+gold      1     1
+```
+
+### STRETCH GOAL 3
+
+`.github/workflows/test.yml` runs pytest and ruff on every pull request.
+
+### STRETCH GOAL 4
+
+The Dockerfile runs the tests by default. `docker run --rm orbit-air-baggage-desk main.py --help` runs the app.
+
 

@@ -80,6 +80,22 @@ def escalate_overdue(conn, now, by="system"):
     return escalated
 
 
+# STRETCH GOAL 2
+def report_by_tier(conn, now):
+    counts = {tier: {"open": 0, "overdue": 0} for tier in TIERS}
+    rows = conn.execute("SELECT tier, status, deadline FROM claims").fetchall()
+    for row in rows:
+        bucket = counts.get(row["tier"])
+        if bucket is None:
+            continue
+        if row["status"] == "open":
+            bucket["open"] += 1
+        still_open = row["status"] in {"open", "assigned", "escalated"}
+        if still_open and is_overdue(row["deadline"], now):
+            bucket["overdue"] += 1
+    return counts
+
+
 def seed_claims(conn, rows, now, by="seed"):
     prepared = []
     for index, row in enumerate(rows, start=1):
