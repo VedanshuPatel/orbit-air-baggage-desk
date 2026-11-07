@@ -4,6 +4,13 @@ CLAIM_TYPES = ("delayed", "lost", "damaged")
 TIERS = ("standard", "silver", "gold")
 STATUSES = ("open", "assigned", "escalated", "resolved", "closed")
 DEADLINE_HOURS = {"gold": 4, "silver": 24, "standard": 72}
+ALLOWED_CHANGES = {
+    "open": {"assigned", "escalated"},
+    "assigned": {"resolved", "escalated"},
+    "escalated": {"assigned", "resolved"},
+    "resolved": {"closed"},
+    "closed": set(),
+}
 
 
 class ClaimError(Exception):
@@ -40,6 +47,19 @@ def file_claim(conn, passenger, flight, claim_type, tier, note, now, by):
     return claim_id
 
 
+def assign_claim(conn, claim_id, agent, now, by):
+    agent_name = _required_text(agent, "Agent name")
+    _change_status(conn, claim_id, "assigned", now, by, agent=agent_name)
+
+
+def resolve_claim(conn, claim_id, now, by):
+    _change_status(conn, claim_id, "resolved", now, by)
+
+
+def close_claim(conn, claim_id, now, by):
+    _change_status(conn, claim_id, "closed", now, by)
+
+
 def list_claims(conn, status=None, tier=None):
     clauses = []
     params = []
@@ -51,6 +71,45 @@ def list_claims(conn, status=None, tier=None):
         params.append(tier)
     where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
     return conn.execute(f"SELECT * FROM claims {where} ORDER BY id", params).fetchall()
+
+
+def _change_status(conn, claim_id, new_status, now, by, agent=None):
+    claim = _get_claim(conn, claim_id)
+    current = claim["status"]
+    if new_status not in ALLOWED_CHANGES[current]:
+        allowed = sorted(ALLOWED_CHANGES[current])
+        if allowed:
+            raise ClaimError(
+                f"Cannot change status from {current} to {new_status}. "
+                f"Allowed: {', '.join(allowed)}."
+            )
+        raise ClaimError(f"Cannot change status from {current}. Nothing is allowed.")
+    changed_at = _as_naive_datetime(now).isoformat(timespec="seconds")
+    with conn:
+        if agent is None:
+            conn.execute(
+                "UPDATE claims SET status = ? WHERE id = ?",
+                (new_status, claim_id),
+            )
+        else:
+            conn.execute(
+                "UPDATE claims SET status = ?, agent = ? WHERE id = ?",
+                (new_status, agent, claim_id),
+            )
+        conn.execute(
+            """
+            INSERT INTO history (claim_id, old_status, new_status, changed_by, changed_at)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (claim_id, current, new_status, by, changed_at),
+        )
+
+
+def _get_claim(conn, claim_id):
+    row = conn.execute("SELECT * FROM claims WHERE id = ?", (claim_id,)).fetchone()
+    if row is None:
+        raise ClaimError(f"No claim with id {claim_id}.")
+    return row
 
 
 def _required_text(value, label):
