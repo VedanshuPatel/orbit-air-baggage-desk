@@ -1,3 +1,13 @@
+# Orbit Air Baggage Desk
+.venv/
+.env
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+CLAUDE.local.md
+.claude/settings.local.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
