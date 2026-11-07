@@ -1,6 +1,7 @@
 # Orbit Air Baggage Desk
 .venv/
 .env
+.env.*
 *.db
 *.db-journal
 *.sqlite
