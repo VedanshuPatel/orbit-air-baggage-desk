@@ -23,7 +23,12 @@ ruff check .
 
 ## Linear Issues
 
-To be added once the four issues are created in the Linear project Orbit Air Baggage Desk.
+Project: [Orbit Air Baggage Desk](https://linear.app/tejdeep-pathipati/project/orbit-air-baggage-desk-ce48b2457936)
+
+- [ORBIT-1](https://linear.app/tejdeep-pathipati/issue/ORBIT-1/featureschema-and-filing-tables-filing-validation-deadlines-list) — feature/schema-and-filing: tables, filing, validation, deadlines, list
+- [ORBIT-2](https://linear.app/tejdeep-pathipati/issue/ORBIT-2/featureassign-and-status-assign-resolve-close-allowed-changes-history) — feature/assign-and-status: assign, resolve, close, allowed changes, history
+- [ORBIT-3](https://linear.app/tejdeep-pathipati/issue/ORBIT-3/featuredeadlines-and-escalation-overdue-rule-escalation-rollback) — feature/deadlines-and-escalation: overdue rule, escalation, rollback
+- [ORBIT-4](https://linear.app/tejdeep-pathipati/issue/ORBIT-4/featurecli-commands-the-now-option-and-the-seed-command) — feature/cli: commands, the --now option, and the seed command
 
 ## Setup Check
 
