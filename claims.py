@@ -60,6 +60,26 @@ def close_claim(conn, claim_id, now, by):
     _change_status(conn, claim_id, "closed", now, by)
 
 
+def is_overdue(deadline, now):
+    return _as_naive_datetime(now) > _as_naive_datetime(deadline)
+
+
+def escalate_overdue(conn, now, by="system"):
+    rows = conn.execute(
+        """
+        SELECT id, deadline FROM claims
+        WHERE status IN ('open', 'assigned')
+        ORDER BY id
+        """
+    ).fetchall()
+    escalated = []
+    for row in rows:
+        if is_overdue(row["deadline"], now):
+            _change_status(conn, row["id"], "escalated", now, by)
+            escalated.append(row["id"])
+    return escalated
+
+
 def list_claims(conn, status=None, tier=None):
     clauses = []
     params = []
@@ -84,6 +104,8 @@ def _change_status(conn, claim_id, new_status, now, by, agent=None):
                 f"Allowed: {', '.join(allowed)}."
             )
         raise ClaimError(f"Cannot change status from {current}. Nothing is allowed.")
+    if new_status == "escalated" and not is_overdue(claim["deadline"], now):
+        raise ClaimError("Claim is not overdue, so it cannot be escalated.")
     changed_at = _as_naive_datetime(now).isoformat(timespec="seconds")
     with conn:
         if agent is None:
